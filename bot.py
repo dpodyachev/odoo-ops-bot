@@ -286,7 +286,17 @@ else ngx_err() {{ sudo -n tail -q -n 3000 __NGINX_ERROR__ 2>/dev/null; }}; fi
 NE=$(ngx_err | awk -v s="$SINCE" 'substr($0, 1, 16) >= s && /\\[(error|crit|alert|emerg)\\]/')
 echo "ngx_err_1h=$(printf '%s\n' "$NE" | grep -c .)"
 echo "ngx_upstream_1h=$(printf '%s\n' "$NE" | grep -c upstream)"
-for p in __ODOO_PORTS__; do ss -ltn "sport = :$p" | grep -q LISTEN && echo "port_$p=up" || echo "port_$p=down"; done
+# Odoo в docker без опубликованных портов слушает только в своём сетевом namespace — смотрим LISTEN (0A) в /proc/<pid>/net
+OPID=""; [ -n "$OD" ] && OPID=$(sudo -n docker inspect -f '{{{{.State.Pid}}}}' "$OD" 2>/dev/null)
+for p in __ODOO_PORTS__; do
+  if [ -n "$OPID" ] && [ "$OPID" != 0 ]; then
+    h=$(printf '%04X' "$p")
+    cat "/proc/$OPID/net/tcp" "/proc/$OPID/net/tcp6" 2>/dev/null | awk -v h=":$h" '$2 ~ h"$" && $4 == "0A" {{f=1}} END {{exit !f}}' \
+      && echo "port_$p=up" || echo "port_$p=down"
+  else
+    ss -ltn "sport = :$p" | grep -q LISTEN && echo "port_$p=up" || echo "port_$p=down"
+  fi
+done
 if [ -n "$OD" ]; then
   LP=$(sudo -n docker inspect -f '{{{{.LogPath}}}}' "$OD" 2>/dev/null)
   echo "logfile=docker logs $OD"
