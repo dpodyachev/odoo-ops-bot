@@ -1,0 +1,53 @@
+{
+  "tz": "Europe/Kyiv",
+  "servers": {
+    "prod": {
+      "label": "PROD",
+      "ssh": "odoo@prod.example.com",
+      "url": "https://erp.example.com/web/login",
+      "note": "prod.example.com",
+      "conf": "/opt/odoo/config/odoo-server.conf",
+      "service": "odoo_main",
+      "db": "",
+      "psql": "psql",
+      "nginx_access": "/var/log/nginx/odoo-access.log",
+      "nginx_error": "/var/log/nginx/error.log /var/log/nginx/odoo-error.log",
+      "odoo_ports": "8069 8072",
+      "filestore": "/opt/odoo/.local/filestore"
+    },
+    "stage": {
+      "ssh": "odoo@stage.example.com",
+      "url": "https://stage.example.com/web/login",
+      "filestore": "/opt/odoo/.local/filestore",
+      "odoo_bin": "/opt/odoo/odoo-bin",
+      "_comment_update": "update_cmd включает /pull /update /restore (git-репозитории берутся из addons_path конфига Odoo)",
+      "update_cmd": "PYTHONPATH=/opt/odoo click-odoo-update",
+      "git_exclude": "",
+      "update_conf": "",
+      "addons_map": ""
+    }
+  },
+  "backup": {
+    "mode": "none",
+
+    "_comment_prod2stage": "mode=prod2stage: копия базы source → dest через ops/prod2stage.sh",
+    "source": "prod",
+    "dest": "stage",
+    "source_db": "erp",
+    "db_prefix": "erp_",
+    "dest_base_url": "https://stage.example.com",
+    "dump_dir": "/opt/odoo/backups",
+    "db_owner": "odoo",
+    "modules": "-",
+    "neutralize_sql": "ops/stage-neutralize.sql",
+    "neutralize_ru": "почта, интеграции, cron, web.base.url",
+    "neutralize_uk": "пошта, інтеграції, cron, web.base.url",
+
+    "_comment_systemd": "mode=systemd: запуск юнита бэкапа на сервере target",
+    "target": "prod",
+    "unit": "backup.service",
+    "timer": "backup.timer",
+    "note_ru": "",
+    "note_uk": ""
+  }
+}

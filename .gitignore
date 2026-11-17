@@ -1,0 +1,12 @@
+# Секреты и настройки конкретного клиента — в git не выгружать
+# (образцы для репозитория: .env.example, targets.example.json)
+.env
+targets.json
+
+# Рабочие файлы бота
+bot.log
+bot.pid
+__pycache__/
+history/
+tmp/
+logs/

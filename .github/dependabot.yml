@@ -1,0 +1,7 @@
+# Раз в неделю — PR с обновлением версий GitHub Actions (бот сам зависимостей не имеет: только stdlib).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

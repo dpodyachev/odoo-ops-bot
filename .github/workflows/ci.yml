@@ -1,0 +1,48 @@
+# Проверки на каждый push и pull request. Ничего не деплоит и не имеет доступа к серверам.
+name: ci
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 5 * * 1"   # раз в неделю — повторный поиск секретов по всей истории
+
+permissions:
+  contents: read           # токен workflow только читает репозиторий
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Синтаксис Python
+        run: python -m py_compile bot.py
+      - name: Ruff (ошибки, а не стиль)
+        run: pipx run ruff check --select E9,F63,F7,F82,F401,F811,B006,B008 bot.py
+      - name: ShellCheck
+        run: shellcheck -S warning run.sh ops/*.sh
+      - name: Примеры конфигов — валидный JSON без реальных адресов
+        run: |
+          python -m json.tool targets.example.json > /dev/null
+          ! grep -nE '"ssh": *"[^"]*@[^"]*"' targets.example.json | grep -v example.com
+      - name: Бот загружается с примерами конфигов
+        run: |
+          cp .env.example .env && cp targets.example.json targets.json
+          python -c "import importlib.util as u; s=u.spec_from_file_location('bot', 'bot.py'); m=u.module_from_spec(s); s.loader.exec_module(m); assert m.ACTIONS and m.help_text()"
+
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0             # вся история: секрет мог быть в старом коммите
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

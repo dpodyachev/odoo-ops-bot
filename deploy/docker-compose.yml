@@ -1,0 +1,14 @@
+# Один контейнер = один бот = один клиент. Для второго клиента — копия сервиса со своей папкой config.
+services:
+  odoo-bot-client1:
+    build: ..
+    container_name: odoo-bot-client1
+    restart: unless-stopped
+    environment:
+      CLAUDE_CONFIG_DIR: /claude      # своя папка Claude Code для /analyze
+    volumes:
+      - ./client1/.env:/bot/.env:ro
+      - ./client1/targets.json:/bot/targets.json:ro
+      - ./client1/history:/bot/history
+      - ./client1/claude:/claude
+      - ./client1/ssh:/root/.ssh:ro   # отдельный ключ только для этого клиента

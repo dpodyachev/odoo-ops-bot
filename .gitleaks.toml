@@ -1,0 +1,8 @@
+# Поверх стандартных правил gitleaks: токен Telegram-бота.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "telegram-bot-token"
+description = "Telegram bot token"
+regex = '''\b[0-9]{8,10}:AA[0-9A-Za-z_-]{33}\b'''
