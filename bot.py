@@ -1004,7 +1004,7 @@ def do_analyze(target):
         if CLAUDE_MODEL:
             cmd += ["--model", CLAUDE_MODEL]
         try:
-            p = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=300)
+            p = subprocess.run(cmd, input=mask_secrets(prompt), capture_output=True, text=True, timeout=300)
         except subprocess.TimeoutExpired:
             raise RuntimeError(L("Claude не ответил за 300 с", "Claude не відповів за 300 с"))
         if p.returncode != 0 or not p.stdout.strip():
@@ -1057,12 +1057,27 @@ def tg(method, retries=3, **params):
             time.sleep(2 * (attempt + 1))
 
 
+SECRET_RES = [
+    (re.compile(r"(/bot|bot)\d{6,12}:[A-Za-z0-9_-]{2,}"), r"\1***"),          # токены Telegram-ботов в URL ошибок
+    (re.compile(r"(://[^/\s:@]+:)[^/\s@]+@"), r"\1***@"),                    # пароль в URL user:pass@host
+    (re.compile(r"(?i)\b(password|passwd|api[_-]?key|token|secret)(\s*[=:]\s*)[^\s,;'\"]+"), r"\1\2***"),
+]
+
+
+def mask_secrets(text):
+    """Маскирует похожие на секреты фрагменты в тексте, уходящем в чат (ошибки job, строки лога)."""
+    for rx, rep in SECRET_RES:
+        text = rx.sub(rep, text)
+    return text
+
+
 def render(parts):
     """Склеивает части в HTML-сообщения не длиннее лимита Telegram (4096)."""
     out = []
     for kind, text in parts:
         if kind == "file":
             continue
+        text = mask_secrets(text)
         if kind == "b":
             out.append(f"<b>{html.escape(text)}</b>")
         elif kind == "text":
